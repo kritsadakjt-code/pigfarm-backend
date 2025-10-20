@@ -21,9 +21,7 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("error loading .env file")
-	}
+	godotenv.Load() // โหลด .env ถ้ามี, ถ้าไม่มีก็ไม่เป็นไร
 	config.InitDB()
 	config.DB.AutoMigrate(
 		&models.User{},
