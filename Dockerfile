@@ -1,6 +1,6 @@
 # ---- Build Stage ----
 # ใช้ Go เวอร์ชั่นล่าสุดเป็น base image สำหรับ build
-FROM golang:1.21-alpine AS builder
+FROM golang:1.22-alpine AS builder
 
 # ตั้งค่า Working Directory ภายใน Image
 WORKDIR /app
