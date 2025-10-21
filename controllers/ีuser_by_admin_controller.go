@@ -148,8 +148,8 @@ func UpdateUser(c *fiber.Ctx) error {
 		FullName *string `json:"full_name,omitempty"`
 		Email    *string `json:"email,omitempty"`
 		Phone    *string `json:"phone,omitempty"`
-		Role     *string `json:"role" validate:"omitempty,oneof=owner employee"`
-		Status   *string `json:"status" validate:"omitempty,oneof=approved rejected pending"`
+		Role     *string `json:"role" `
+		Status   *string `json:"status" `
 	}
 
 	err = c.BodyParser(&input)
