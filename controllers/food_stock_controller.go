@@ -45,7 +45,14 @@ func CreateFoodStock(c *fiber.Ctx) error {
 	// case "โพรไบโอติก", "เเร่ธาตุรวม", "วิตามินรวม":
 	// 	FoodType = "อาหารเสริม"
 	// }
+	// loc, _ := time.LoadLocation("Asia/Bangkok")
 	loc, _ := time.LoadLocation("Asia/Bangkok")
+
+	if input.DateTime == "" {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "DateTime is required",
+		})
+	}
 	parsedDate, err := time.ParseInLocation("2006-01-02 15:04", input.DateTime, loc)
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid date format, expected YYYY-MM-DD HH:MM"})
