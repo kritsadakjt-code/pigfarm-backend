@@ -2,6 +2,9 @@
 # ใช้ Go เวอร์ชั่นล่าสุดเป็น base image สำหรับ build
 FROM golang:1.24.2-alpine AS builder
 
+# Install timezone data
+RUN apk add --no-cache tzdata
+
 # ตั้งค่า Working Directory ภายใน Image
 WORKDIR /app
 
