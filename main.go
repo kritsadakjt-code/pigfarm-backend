@@ -86,7 +86,7 @@ func main() {
 	routes.DashboardRoute(app)
 	routes.NotificationRoutes(app, notiHandler)
 	routes.FeedingScheduleRoute(app)
-
+	log.Println("FRONTEND_URL =", os.Getenv("FRONTEND_URL"))
 	// utils.StartNotificationScheduler()
 	log.Fatal(app.Listen(":" + os.Getenv("PORT")))
 }
