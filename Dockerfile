@@ -2,8 +2,7 @@
 # ใช้ Go เวอร์ชั่นล่าสุดเป็น base image สำหรับ build
 FROM golang:1.24.2-alpine AS builder
 
-# Install timezone data
-RUN apk add --no-cache tzdata
+
 
 # ตั้งค่า Working Directory ภายใน Image
 WORKDIR /app
@@ -22,6 +21,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./main.go
 # ---- Final Stage ----
 # ใช้ base image ขนาดเล็กสำหรับ run application จริง
 FROM alpine:latest
+
+# Install timezone data
+RUN apk add --no-cache tzdata
 
 WORKDIR /app
 
