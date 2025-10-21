@@ -97,8 +97,8 @@ func CreatePig(c *fiber.Ctx) error {
 	case "หมูขุน":
 		status = "กําลังขุน"
 	}
-
-	parsedDate, err := time.Parse("2006-01-02", input.BirthDate)
+	loc, _ := time.LoadLocation("Asia/Bangkok")
+	parsedDate, err := time.ParseInLocation("2006-01-02", input.BirthDate, loc)
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid date format, expected YYYY-MM-DD"})
 	}
@@ -333,7 +333,8 @@ func UpdatePig(c *fiber.Ctx) error {
 		updates["type"] = *input.Type
 	}
 	if input.BirthDate != nil {
-		parsedDate, err := time.Parse("2006-01-02", *input.BirthDate)
+		loc, _ := time.LoadLocation("Asia/Bangkok")
+		parsedDate, err := time.ParseInLocation("2006-01-02", *input.BirthDate, loc)
 		if err != nil {
 			return c.Status(400).JSON(fiber.Map{"error": "Invalid date format, expected YYYY-MM-DD"})
 		}

@@ -84,6 +84,7 @@ func (s *NotificationScheduler) Start() {
 				if err := s.service.CheckBreeding(); err != nil {
 					log.Printf("error checking breeding: %v", err)
 				}
+
 				s.CheckFeedingSchedules()
 			case <-s.stopChan:
 				log.Println("Notification scheduler stopped")
