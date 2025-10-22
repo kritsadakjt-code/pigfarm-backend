@@ -93,9 +93,9 @@ func CreatePig(c *fiber.Ctx) error {
 	status := input.Status
 	switch input.Type {
 	case "ลูกหมู":
-		status = "กําลังเลี้ยง"
+		status = "กำลังเลี้ยง"
 	case "หมูขุน":
-		status = "กําลังขุน"
+		status = "กำลังขุน"
 	}
 	loc, _ := time.LoadLocation("Asia/Bangkok")
 	parsedDate, err := time.ParseInLocation("2006-01-02", input.BirthDate, loc)
