@@ -90,7 +90,7 @@ func GetAllExpense(c *fiber.Ctx) error {
 	var expenses []models.Expense
 
 	// ดึงข้อมูลทั้งหมด
-	if err := config.DB.Find(&expenses).Error; err != nil {
+	if err := config.DB.Order("date DESC").Find(&expenses).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "cannot fetch expenses"})
 	}
 

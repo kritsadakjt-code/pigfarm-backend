@@ -8,8 +8,10 @@ import (
 )
 
 func CorsConfig() func(*fiber.Ctx) error {
+	// frontendURL := os.Getenv("FRONTEND_URL_DEV")
 	frontendURL := os.Getenv("FRONTEND_URL")
 	return cors.New(cors.Config{
+		// AllowOrigins: frontendURL,
 		AllowOrigins:     "http://localhost:3000," + frontendURL,
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS,PATCH",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",

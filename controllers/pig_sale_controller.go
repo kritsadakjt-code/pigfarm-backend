@@ -237,7 +237,7 @@ func SearchPigSale(c *fiber.Ctx) error {
 
 func GetAllPigSale(c *fiber.Ctx) error {
 	var pigSale []models.PigSale
-	if err := config.DB.Preload("Items.Pig").Find(&pigSale).Error; err != nil {
+	if err := config.DB.Order("date DESC").Preload("Items.Pig").Find(&pigSale).Error; err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Fail to fecth PigSale"})
 	}
 

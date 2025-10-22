@@ -20,6 +20,7 @@ import (
 type Pig struct {
 	gorm.Model
 	CodeName  string    `gorm:"size:100;unique; not null" json:"code_name"`
+	Name      string    `gorm:"size:50" json:"name"`
 	Breed     string    `gorm:"size:50;not null" json:"breed"`  // ลาร์จไวท์, แลนด์เรซ, ดูร็อก
 	Gender    string    `gorm:"size:10;not null" json:"gender"` // ผู้, เมีย
 	Type      string    `gorm:"size:20;not null" json:"type"`   // พ่อพันธุ์, แม่พันธุ์, หมูขุน, ลูกหมู

@@ -47,6 +47,23 @@ func CreateFeeding(c *fiber.Ctx) error {
 			tx.Rollback()
 		}
 	}()
+	// ดึงข้อมูลหมูที่เลือก
+	var validPigsToFeed []models.Pig
+	if len(input.PigIDs) > 0 {
+		var pigs []models.Pig
+		if err := tx.Where("id IN ?", input.PigIDs).Find(&pigs).Error; err != nil {
+			tx.Rollback()
+			return c.Status(404).JSON(fiber.Map{"error": "Pigs not found"})
+		}
+
+		// แยกหมูที่สามารถให้อาหารได้
+		for _, pig := range pigs {
+			if pig.Status != "ตายเเล้ว" && pig.Status != "ขายเเล้ว" {
+				validPigsToFeed = append(validPigsToFeed, pig)
+			}
+		}
+	}
+
 	// check ชนิดอาหาร
 	food := &models.FoodStock{}
 	if err := tx.First(food, "id = ?", input.FoodID).Error; err != nil {
@@ -85,19 +102,35 @@ func CreateFeeding(c *fiber.Ctx) error {
 		tx.Rollback()
 		return c.Status(500).JSON(fiber.Map{"error": "failed to create feeding"})
 	}
+	var items []models.FeedingItem
+	var validPigIDs []uint
+	for _, pig := range validPigsToFeed {
+		items = append(items, models.FeedingItem{
+			FeedingID: feeding.ID,
+			PigID:     pig.ID,
+		})
+		validPigIDs = append(validPigIDs, pig.ID)
+	}
+	if len(items) > 0 {
+		if err := tx.Create(&items).Error; err != nil {
+			tx.Rollback()
+			return c.Status(500).JSON(fiber.Map{"error": "Failed to create feeding Items"})
+		}
+	}
 
 	if err := tx.Commit().Error; err != nil {
 		tx.Rollback()
 		return c.Status(500).JSON(fiber.Map{"error": "Transaction commit failed"})
 	}
 
-	if err := config.DB.Preload("FoodStock").Preload("Creator").Preload("Updater").First(&feeding, "id = ?", feeding.ID).Error; err != nil {
+	if err := config.DB.Preload("FoodStock").Preload("Creator").Preload("Updater").Preload("Items.Pig").First(&feeding, "id = ?", feeding.ID).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to preload feeding"})
 	}
 
 	resp := dto.FeedingResponse{
 		ID:          feeding.ID,
 		FoodID:      food.ID,
+		PigIDs:      validPigIDs,
 		DateTime:    parsedDate,
 		Amount:      feeding.Amount,
 		Note:        feeding.Note,
@@ -151,15 +184,26 @@ func SearchFeeding(c *fiber.Ctx) error {
 
 func GetAllFeeding(c *fiber.Ctx) error {
 	var feedings []models.Feeding
-	err := config.DB.Preload("FoodStock").Preload("Creator").Preload("Updater").Find(&feedings).Error
+	err := config.DB.Order("date_time DESC").Preload("FoodStock").Preload("Items.Pig").Preload("Creator").Preload("Updater").Find(&feedings).Error
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "cannot fetch Feedings"})
 	}
 	var resp []dto.FeedingResponse
 	for _, feeding := range feedings {
+		var pigIDs []uint
+		var pigCodeNames []string
+
+		for _, item := range feeding.Items {
+			if item.Pig.ID != 0 {
+				pigIDs = append(pigIDs, item.Pig.ID)
+				pigCodeNames = append(pigCodeNames, item.Pig.CodeName)
+			}
+		}
 		resp = append(resp, dto.FeedingResponse{
 			ID:          feeding.ID,
 			FoodID:      feeding.FoodStock.ID,
+			PigIDs:      pigIDs,
+			PigCodeName: pigCodeNames,
 			DateTime:    feeding.DateTime,
 			Amount:      feeding.Amount,
 			Note:        feeding.Note,
@@ -204,37 +248,36 @@ func GetFeedingByID(c *fiber.Ctx) error {
 	return c.JSON(resp)
 }
 func UpdateFeeding(c *fiber.Ctx) error {
-	user_id_str := fmt.Sprintf("%v", c.Locals("user_id"))
-	user_id64, err := strconv.ParseUint(user_id_str, 10, 64)
+	userIDStr := fmt.Sprintf("%v", c.Locals("user_id"))
+	userID64, err := strconv.ParseUint(userIDStr, 10, 64)
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "invalid user_id"})
 	}
-	user_id := uint(user_id64)
+	userID := uint(userID64)
 
 	id := c.Params("id")
-	feeding_id, err := strconv.Atoi(id)
+	feedingID, err := strconv.Atoi(id)
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid ID"})
 	}
 
 	feeding := &models.Feeding{}
-	if err := config.DB.First(feeding, "id = ?", feeding_id).Error; err != nil {
+	if err := config.DB.Preload("Items").First(feeding, "id = ?", feedingID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return c.Status(404).JSON(fiber.Map{"error": "Not Found Feeding ID"})
+			return c.Status(404).JSON(fiber.Map{"error": "Feeding not found"})
 		}
-		return c.Status(500).JSON(fiber.Map{"error": "Database error Feeding"})
+		return c.Status(500).JSON(fiber.Map{"error": "Database error"})
 	}
 
 	var input dto.FeedingUpdate
 	if err := c.BodyParser(&input); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "Invalid Input"})
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid input"})
 	}
 
 	if err := validate.Struct(input); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	// เริ่ม transaction
 	tx := config.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -244,74 +287,55 @@ func UpdateFeeding(c *fiber.Ctx) error {
 
 	updates := make(map[string]interface{})
 
-	// ให้ให้เป็นค่าเดิมถ้าไม่มีการเปลี่ยนค่า เพราะจะได้เอาไปใช้ถูก
-	// ค่า food ใหม่เเละเก่า จะใช้ตัวเเปรเดียวกัน
+	// ----------------- อัปเดต FoodStock -----------------
 	newFoodID := feeding.FoodID
 	newAmount := feeding.Amount
 
-	// ถ้าเปลี่ยนค่า
 	if input.FoodID != nil {
 		newFoodID = *input.FoodID
 	}
 	if input.Amount != nil {
 		if *input.Amount <= 0 {
 			tx.Rollback()
-			return c.Status(400).JSON(fiber.Map{"error": "Amount must be non-negative"})
+			return c.Status(400).JSON(fiber.Map{"error": "Amount must be > 0"})
 		}
 		newAmount = *input.Amount
 	}
 
-	// ถ้ามีการเปลี่ยน foodID or Amount
-	stockUpdate := (input.FoodID != nil) || (input.Amount != nil)
-	if stockUpdate {
-		// คืนค่าของ foodID เดิม
+	if input.FoodID != nil || input.Amount != nil {
+		// คืน stock ของ food เดิม
 		oldFood := &models.FoodStock{}
 		if err := tx.First(oldFood, "id = ?", feeding.FoodID).Error; err != nil {
 			tx.Rollback()
 			return c.Status(500).JSON(fiber.Map{"error": "Failed to find old food stock"})
 		}
 		oldFood.Amount += feeding.Amount
-		if err := tx.Save(oldFood).Error; err != nil {
-			tx.Rollback()
-			return c.Status(500).JSON(fiber.Map{"error": "Failed to restore old food stock"})
-		}
+		tx.Save(oldFood)
 
-		// ตัดสต็อกจะตัดตามค่า newFoodID ถ้าไม่มีค่าใหม่ก็ใช้ตัว newFoodID ซึ่งจะเป็นได้ทั้งค่าใหม่เเละค่าเก่า
+		// ตัด stock ของ food ใหม่
 		newFood := &models.FoodStock{}
 		if err := tx.First(newFood, "id = ?", newFoodID).Error; err != nil {
 			tx.Rollback()
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return c.Status(404).JSON(fiber.Map{"error": "FoodStock not found"})
-			}
-			return c.Status(500).JSON(fiber.Map{"error": "Database error (food stock)"})
+			return c.Status(404).JSON(fiber.Map{"error": "FoodStock not found"})
 		}
-
 		if newFood.Amount < newAmount {
 			tx.Rollback()
 			return c.Status(400).JSON(fiber.Map{"error": "Not enough food in stock"})
 		}
-
 		newFood.Amount -= newAmount
-		if err := tx.Save(newFood).Error; err != nil {
-			tx.Rollback()
-			return c.Status(500).JSON(fiber.Map{"error": "Failed to update new food stock"})
-		}
+		tx.Save(newFood)
 
-		// อัพเดท feeding
-		if input.FoodID != nil {
-			updates["food_id"] = newFoodID
-		}
-		if input.Amount != nil {
-			updates["amount"] = newAmount
-		}
-
+		updates["food_id"] = newFoodID
+		updates["amount"] = newAmount
 	}
+
+	// ----------------- อัปเดตวันที่และ note -----------------
 	if input.DateTime != nil {
 		loc, _ := time.LoadLocation("Asia/Bangkok")
 		parsedDate, err := time.ParseInLocation("2006-01-02 15:04", *input.DateTime, loc)
 		if err != nil {
 			tx.Rollback()
-			return c.Status(400).JSON(fiber.Map{"error": "Invalid date format, expected YYYY-MM-DD HH:MM"})
+			return c.Status(400).JSON(fiber.Map{"error": "Invalid date format"})
 		}
 		if parsedDate.After(time.Now()) {
 			tx.Rollback()
@@ -319,29 +343,74 @@ func UpdateFeeding(c *fiber.Ctx) error {
 		}
 		updates["date_time"] = parsedDate
 	}
-
 	if input.Note != nil {
 		updates["note"] = *input.Note
 	}
-	updates["updated_by"] = user_id
+
+	updates["updated_by"] = userID
 
 	if err := tx.Model(feeding).Updates(updates).Error; err != nil {
 		tx.Rollback()
-		return c.Status(500).JSON(fiber.Map{"error": "Fail to update feeding"})
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to update feeding"})
+	}
+
+	// ----------------- อัปเดต FeedingItem -----------------
+	// ลบ item เดิม
+	if len(feeding.Items) > 0 {
+		if err := tx.Where("feeding_id = ?", feeding.ID).Delete(&models.FeedingItem{}).Error; err != nil {
+			tx.Rollback()
+			return c.Status(500).JSON(fiber.Map{"error": "Failed to delete old feeding items"})
+		}
+	}
+
+	var validPigIDs []uint
+	var items []models.FeedingItem
+	var pigCodeNames []string
+	if input.PigIDs != nil && len(*input.PigIDs) > 0 {
+		var pigs []models.Pig
+		if err := tx.Where("id IN ?", *input.PigIDs).Find(&pigs).Error; err != nil {
+			tx.Rollback()
+			return c.Status(404).JSON(fiber.Map{"error": "Pigs not found"})
+		}
+		for _, pig := range pigs {
+			if pig.Status != "ตายเเล้ว" && pig.Status != "ขายเเล้ว" {
+				items = append(items, models.FeedingItem{
+					FeedingID: feeding.ID,
+					PigID:     pig.ID,
+				})
+				validPigIDs = append(validPigIDs, pig.ID)
+			}
+		}
+
+		for _, pig := range pigs {
+			if pig.Status != "ตายเเล้ว" && pig.Status != "ขายเเล้ว" {
+				pigCodeNames = append(pigCodeNames, pig.CodeName)
+			}
+		}
+	}
+
+	if len(items) > 0 {
+		if err := tx.Create(&items).Error; err != nil {
+			tx.Rollback()
+			return c.Status(500).JSON(fiber.Map{"error": "Failed to create feeding items"})
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to commit transaction"})
 	}
 
-	if err := config.DB.Preload("FoodStock").Preload("Creator").Preload("Updater").
-		First(feeding, "id = ?", feeding.ID).Error; err != nil {
+	// Reload
+	if err := config.DB.Preload("FoodStock").Preload("Creator").Preload("Updater").First(feeding, "id = ?", feeding.ID).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to reload feeding"})
 	}
 
 	resp := dto.FeedingResponse{
 		ID:          feeding.ID,
 		FoodID:      feeding.FoodStock.ID,
+		PigIDs:      validPigIDs,
+		PigCodeName: pigCodeNames,
 		DateTime:    feeding.DateTime,
 		Amount:      feeding.Amount,
 		Note:        feeding.Note,

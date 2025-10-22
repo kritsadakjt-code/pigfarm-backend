@@ -306,7 +306,7 @@ func SearchBreeding(c *fiber.Ctx) error {
 
 func GetAllBreeding(c *fiber.Ctx) error {
 	var breedings []models.Breeding
-	if err := config.DB.Model(&models.Breeding{}).Preload("Father").Preload("Mother").Preload("Creator").Preload("Updater").Find(&breedings).Error; err != nil {
+	if err := config.DB.Order("breeding_date DESC").Model(&models.Breeding{}).Preload("Father").Preload("Mother").Preload("Creator").Preload("Updater").Find(&breedings).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "cannot fetch breeding data"})
 	}
 

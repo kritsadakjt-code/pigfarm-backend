@@ -29,6 +29,7 @@ func main() {
 		&models.Breeding{},
 		&models.FoodStock{},
 		&models.Feeding{},
+		&models.FeedingItem{},
 		&models.Health{},
 		&models.Expense{},
 		&models.PigSale{},

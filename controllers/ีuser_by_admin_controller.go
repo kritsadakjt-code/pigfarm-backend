@@ -77,7 +77,7 @@ func GetUserByID(c *fiber.Ctx) error {
 
 func GetAllUsers(c *fiber.Ctx) error {
 	var users []models.User
-	err := config.DB.Find(&users).Error
+	err := config.DB.Order("created_at DESC").Find(&users).Error
 	if err != nil {
 		return c.Status(404).JSON(fiber.Map{"error": "Failed to fetch users"})
 	}
@@ -109,7 +109,7 @@ func CreateUser(c *fiber.Ctx) error {
 	if err == nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Email already exists"})
 	}
-
+	// input.Password = "12345678"
 	hashed, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "failed to hash password"})

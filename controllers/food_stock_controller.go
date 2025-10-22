@@ -139,7 +139,7 @@ func SearchFoodStock(c *fiber.Ctx) error {
 
 func GetAllFoodStock(c *fiber.Ctx) error {
 	var foodStock []models.FoodStock
-	if err := config.DB.Preload("Creator").Preload("Updater").Find(&foodStock).Error; err != nil {
+	if err := config.DB.Order("date_time DESC").Preload("Creator").Preload("Updater").Find(&foodStock).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "cannot fetch FoodStock"})
 	}
 

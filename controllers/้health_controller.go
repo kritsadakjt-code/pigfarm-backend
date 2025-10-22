@@ -126,7 +126,7 @@ func SearchHealth(c *fiber.Ctx) error {
 
 func GetAllHealth(c *fiber.Ctx) error {
 	var healths []models.Health
-	err := config.DB.Preload("Pig").Preload("Creator").Preload("Updater").Find(&healths).Error
+	err := config.DB.Order("date DESC").Preload("Pig").Preload("Creator").Preload("Updater").Find(&healths).Error
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "cannot fetch Health"})
 	}

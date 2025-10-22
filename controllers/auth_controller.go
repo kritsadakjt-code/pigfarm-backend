@@ -50,6 +50,7 @@ func Register(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "failed to register"})
 	}
 
+	// frontendURL := os.Getenv("FRONTEND_URL_DEV")
 	frontendURL := os.Getenv("FRONTEND_URL")
 	verificationURL := fmt.Sprintf("%s/verify-email/register/%s", frontendURL, verificationToken)
 
@@ -91,12 +92,22 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(401).JSON(fiber.Map{"error": "Incorrect password"})
 	}
 
-	// check status account
-	if user.Status != "approved" {
+	// --- ส่วนที่แก้ไข ---
+	// ตรวจสอบสถานะต่างๆ ก่อนที่จะเช็ค approved
+	fmt.Println(user.Status)
+	switch user.Status {
+	case "pending_verification_email":
+		return c.Status(403).JSON(fiber.Map{"error": "กรุณายืนยันอีเมลก่อน"})
+	case "pending":
 		return c.Status(403).JSON(fiber.Map{"error": "Account not approved yet"})
+	case "rejected":
+		return c.Status(403).JSON(fiber.Map{"error": "Your account was rejected"})
+	case "approved":
+		// ถ้าเป็น approved ให้ผ่านไปทำขั้นตอนต่อไป (gen token)
+		break
 	}
 
-	// gen token
+	// gen token (จะทำเฉพาะกรณี status เป็น "approved")
 	token, err := utils.GenerateJWT(user.ID, user.Role)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to generate token"})

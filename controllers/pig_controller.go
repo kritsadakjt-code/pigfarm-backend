@@ -108,6 +108,7 @@ func CreatePig(c *fiber.Ctx) error {
 
 	pig := models.Pig{
 		CodeName:  newCodeName,
+		Name:      input.Name,
 		Breed:     input.Breed,
 		Gender:    input.Gender,
 		Type:      input.Type,
@@ -132,6 +133,7 @@ func CreatePig(c *fiber.Ctx) error {
 	resp := dto.PigResponse{
 		ID:          pig.ID,
 		CodeName:    pig.CodeName,
+		Name:        pig.Name,
 		Breed:       pig.Breed,
 		Gender:      pig.Gender,
 		Type:        pig.Type,
@@ -198,7 +200,7 @@ func SearchPigs(c *fiber.Ctx) error {
 
 func GetAllPigs(c *fiber.Ctx) error {
 	var pigs []models.Pig
-	if err := config.DB.Preload("Creator").Preload("Updater").Find(&pigs).Error; err != nil {
+	if err := config.DB.Order("birth_date DESC").Preload("Creator").Preload("Updater").Find(&pigs).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to get pigs"})
 	}
 
@@ -207,6 +209,7 @@ func GetAllPigs(c *fiber.Ctx) error {
 		resp = append(resp, dto.PigResponse{
 			ID:          pig.ID,
 			CodeName:    pig.CodeName,
+			Name:        pig.Name,
 			Breed:       pig.Breed,
 			Gender:      pig.Gender,
 			Type:        pig.Type,
@@ -276,26 +279,33 @@ func UpdatePig(c *fiber.Ctx) error {
 
 	updates := make(map[string]interface{})
 
-	if *input.Gender == "ผู้" && *input.Type == "เเม่พันธุ์" {
-		return c.Status(400).JSON(fiber.Map{"error": "เพศผู้ไม่สามารถเป็นเเม่พันธุ์ได้"})
-	}
-	if *input.Gender == "เมีย" && *input.Type == "พ่อพันธุ์" {
-		return c.Status(400).JSON(fiber.Map{"error": "เพศเมียไม่สามารถเป็นพ่อพันธุ์ได้"})
-	}
-	if *input.Gender == "ผู้" {
-		if *input.Status == "อุ้มท้อง" || *input.Status == "ให้นมลูก" {
-			return c.Status(400).JSON(fiber.Map{"error": "เพศผู้ไม่สามารถมีสถานะอุ้มท้อง, ให้นมลูกได้"})
+	if input.Gender != nil && input.Type != nil {
+		if *input.Gender == "ผู้" && *input.Type == "เเม่พันธุ์" {
+			return c.Status(400).JSON(fiber.Map{"error": "เพศผู้ไม่สามารถเป็นเเม่พันธุ์ได้"})
+		}
+		if *input.Gender == "เมีย" && *input.Type == "พ่อพันธุ์" {
+			return c.Status(400).JSON(fiber.Map{"error": "เพศเมียไม่สามารถเป็นพ่อพันธุ์ได้"})
 		}
 	}
 
-	if *input.Type == "ลูกหมู" {
-		if *input.Status == "อุ้มท้อง" || *input.Status == "ให้นมลูก" || *input.Status == "พร้อมผสม" {
-			return c.Status(400).JSON(fiber.Map{"error": "ลูกหมูไม่สามารถมีสถานะอุ้มท้อง, ให้นมลูก, หรือพร้อมผสมได้"})
+	if input.Gender != nil && input.Status != nil {
+		if *input.Gender == "ผู้" {
+			if *input.Status == "อุ้มท้อง" || *input.Status == "ให้นมลูก" {
+				return c.Status(400).JSON(fiber.Map{"error": "เพศผู้ไม่สามารถมีสถานะอุ้มท้อง, ให้นมลูกได้"})
+			}
 		}
 	}
-	if *input.Type == "หมูขุน" {
-		if *input.Status == "อุ้มท้อง" || *input.Status == "ให้นมลูก" || *input.Status == "พร้อมผสม" {
-			return c.Status(400).JSON(fiber.Map{"error": "ลูกหมูไม่สามารถมีสถานะอุ้มท้อง, ให้นมลูก, หรือพร้อมผสมได้"})
+
+	if input.Type != nil && input.Status != nil {
+		if *input.Type == "ลูกหมู" {
+			if *input.Status == "อุ้มท้อง" || *input.Status == "ให้นมลูก" || *input.Status == "พร้อมผสม" {
+				return c.Status(400).JSON(fiber.Map{"error": "ลูกหมูไม่สามารถมีสถานะอุ้มท้อง, ให้นมลูก, หรือพร้อมผสมได้"})
+			}
+		}
+		if *input.Type == "หมูขุน" {
+			if *input.Status == "อุ้มท้อง" || *input.Status == "ให้นมลูก" || *input.Status == "พร้อมผสม" {
+				return c.Status(400).JSON(fiber.Map{"error": "หมูขุนไม่สามารถมีสถานะอุ้มท้อง, ให้นมลูก, หรือพร้อมผสมได้"})
+			}
 		}
 	}
 
@@ -320,7 +330,9 @@ func UpdatePig(c *fiber.Ctx) error {
 	// 	}
 	// 	updates["code_name"] = *input.CodeName
 	// }
-
+	if input.Name != nil {
+		updates["name"] = *input.Name
+	}
 	if input.Breed != nil {
 		updates["breed"] = *input.Breed
 	}
@@ -366,6 +378,7 @@ func UpdatePig(c *fiber.Ctx) error {
 	resp := dto.PigResponse{
 		ID:          pig.ID,
 		CodeName:    pig.CodeName,
+		Name:        pig.Name,
 		Breed:       pig.Breed,
 		Gender:      pig.Gender,
 		Type:        pig.Type,

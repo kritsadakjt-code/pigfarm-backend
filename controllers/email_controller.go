@@ -174,7 +174,7 @@ func RequestChangeEmail(c *fiber.Ctx) error {
 	if err := config.DB.Save(&user).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to update"})
 	}
-	frontendURL := os.Getenv("FRONTEND_URL")
+	frontendURL := os.Getenv("FRONTEND_URL_DEV")
 
 	// ในฟังก์ชัน RequestChangeEmail
 	verificationURL := fmt.Sprintf("%s/verify-email/change/%s", frontendURL, token)
