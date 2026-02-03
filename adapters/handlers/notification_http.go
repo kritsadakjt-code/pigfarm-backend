@@ -37,6 +37,7 @@ func (h *HttpNotificationHandler) CreateNotification(c *fiber.Ctx) error {
 	return c.Status(201).JSON(dto.MessageResponse{
 		Message: "Notification created successfully",
 	})
+
 }
 
 func (h *HttpNotificationHandler) GetAllNotifications(c *fiber.Ctx) error {
@@ -51,6 +52,7 @@ func (h *HttpNotificationHandler) GetAllNotifications(c *fiber.Ctx) error {
 	response := dto.ToNotificationListResponse(notifications, unreadCount)
 
 	return c.JSON(response)
+
 }
 
 func (h *HttpNotificationHandler) GetNotificationByID(c *fiber.Ctx) error {

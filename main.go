@@ -16,18 +16,21 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 )
 
 func main() {
-	godotenv.Load() // โหลด .env ถ้ามี, ถ้าไม่มีก็ไม่เป็นไร
+	godotenv.Load() // โหลด .env
 	config.InitDB()
+	validate := validator.New()
 	config.DB.AutoMigrate(
 		&models.User{},
 		&models.Pig{},
 		&models.Breeding{},
 		&models.FoodStock{},
+		&models.FoodType{},
 		&models.Feeding{},
 		&models.FeedingItem{},
 		&models.Health{},
@@ -41,12 +44,18 @@ func main() {
 	// ฝัง owner
 	utils.SeedOwnerUser(config.DB)
 
-	// สร้าง Instance ของ FeedingService ใหม่
-	feedingService := usecases.NewFeedingService(config.DB)
-
 	notificationRepo := repositories.NewGormNotificationRepository(config.DB)
 	foodStockRepo := repositories.NewGormFoodStockRepository(config.DB)
 	breedingRepo := repositories.NewGormBreedingRepository(config.DB)
+	feedingSchedRepo := repositories.NewFeedingScheduleGormRepo(config.DB)
+
+	expenseRepo := repositories.NewExpenseGormRepository(config.DB)
+	userRepo := repositories.NewUserGormRepository(config.DB)
+	pigRepo := repositories.NewPigGormRepository(config.DB)
+	breedingRepository := repositories.NewBreedingGormRepo(config.DB)
+	feedingRepo := repositories.NewFeedingGormRepository(config.DB)
+	stockRepo := repositories.NewStockGormRepo(config.DB)
+	dashboardRepo := repositories.NewDashboardGormRepo(config.DB)
 
 	notiService := usecases.NewNotificationService(
 		notificationRepo,
@@ -54,10 +63,26 @@ func main() {
 		breedingRepo,
 	)
 
+	expenseService := usecases.NewExpenseService(expenseRepo)
+	userService := usecases.NewUserService(userRepo)
+	pigService := usecases.NewPigService(pigRepo)
+	breedingService := usecases.NewBreedingService(breedingRepository, pigRepo)
+	feedingService := usecases.NewFeedingService(feedingRepo)
+	stockService := usecases.NewStockService(stockRepo)
+	feedingSchedService := usecases.NewFeedingSchedulerService(feedingSchedRepo)
+	dashboardService := usecases.NewDashboardService(dashboardRepo)
+
 	notiHandler := handlers.NewHttpNotificationHandler(notiService)
+	expenseHandler := handlers.NewHttpExpenseHandler(expenseService, validate)
+	userHandler := handlers.NewHttpUserHandlers(userService, validate)
+	pigHandler := handlers.NewHttpPigHandler(pigService, validate)
+	breedingHandler := handlers.NewBreedingHttpHandler(breedingService, validate)
+	feedingHandler := handlers.NewFeedingHttpHandler(feedingService)
+	stockHandler := handlers.NewHttpStockHandler(stockService, validate)
+	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
 
 	// start scheduler
-	scheduler := schedulers.NewNotificationScheduler(notiService, feedingService, 1*time.Minute)
+	scheduler := schedulers.NewNotificationScheduler(notiService, feedingSchedService, 1*time.Minute)
 
 	scheduler.Start()
 
@@ -70,21 +95,24 @@ func main() {
 		scheduler.Stop()
 		os.Exit(0)
 	}()
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		ErrorHandler: middlewares.ErrorHandler,
+	})
 
 	app.Use(middlewares.CorsConfig())
-	routes.AuthRoutes(app)
+	routes.AuthRoutes(app, userHandler)
 	routes.ProfileRoutes(app)
-	routes.EmailPasswordRoute(app)
-	routes.UserByAdminRoute(app)
-	routes.PigRoute(app)
-	routes.BreedingRoute(app)
-	routes.FeedingRoute(app)
-	routes.FoodStockRoute(app)
+	routes.EmailPasswordRoute(app, userHandler)
+	routes.UserByAdminRoute(app, userHandler)
+	routes.PigRoute(app, pigHandler)
+	routes.BreedingRoute(app, breedingHandler)
+	routes.FeedingRoute(app, feedingHandler)
+	routes.FoodStockRoute(app, stockHandler)
+	routes.FoodTypeRoute(app)
 	routes.HealthRoute(app)
-	routes.ExpenseRoute(app)
+	routes.ExpenseRoute(app, expenseHandler)
 	routes.PigSaleRoute(app)
-	routes.DashboardRoute(app)
+	routes.DashboardRoute(app, dashboardHandler)
 	routes.NotificationRoutes(app, notiHandler)
 	routes.FeedingScheduleRoute(app)
 	log.Println("FRONTEND_URL =", os.Getenv("FRONTEND_URL"))

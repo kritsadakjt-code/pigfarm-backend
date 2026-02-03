@@ -2,6 +2,7 @@ package models
 
 import (
 	"backend/entities"
+	"strconv"
 	"time"
 
 	"gorm.io/gorm"
@@ -27,7 +28,7 @@ func ToEntity(model NotificationModel) entities.Notification {
 	}
 
 	return entities.Notification{
-		ID:        model.ID,
+		ID:        strconv.FormatUint(uint64(model.ID), 10),
 		Type:      model.Type,
 		Title:     model.Title,
 		Message:   model.Message,
@@ -46,7 +47,10 @@ func ToModel(entity *entities.Notification) NotificationModel {
 		Message: entity.Message,
 		IsRead:  entity.IsRead,
 	}
-	model.ID = entity.ID
+	if entity.ID != "" {
+		id, _ := strconv.ParseInt(entity.ID, 10, 64)
+		model.ID = uint(id)
+	}
 	model.CreatedAt = entity.CreatedAt
 	model.UpdatedAt = entity.UpdatedAt
 

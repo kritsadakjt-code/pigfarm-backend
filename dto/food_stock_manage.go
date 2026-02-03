@@ -3,11 +3,10 @@ package dto
 import "time"
 
 type FoodStockInput struct {
-	Name     string  `json:"name" validate:"required,oneof=อาหารลูกหมู อาหารหมูขุน อาหารพ่อเเม่พันธุ์ อาหารหมูท้อง อาหารหมูให้นม วิตามินรวม เเร่ธาตุรวม โพรไบโอติก"`
-	Type     string  `json:"type" validate:"required,oneof=อาหารหลัก อาหารเสริม"`
-	DateTime string  `json:"date_time" validate:"required"`
-	Amount   float64 `json:"amount"`
-	Note     string  `json:"note"`
+	FoodTypeID uint    `json:"food_type_id" validate:"required"`
+	DateTime   string  `json:"date_time" validate:"required"`
+	Amount     float64 `json:"amount"`
+	Note       string  `json:"note"`
 }
 
 type FoodStockUpdate struct {
@@ -20,8 +19,9 @@ type FoodStockUpdate struct {
 
 type FoodStockResponse struct {
 	ID          uint      `json:"id"`
-	Name        string    `json:"name"`
-	Type        string    `json:"type"`
+	FoodTypeID  uint      `json:"food_type_id"`
+	FoodName    string    `json:"food_name"`
+	FoodType    string    `json:"food_type"`
 	DateTime    time.Time `json:"date_time"`
 	Amount      float64   `json:"amount"`
 	Note        string    `json:"note"`
@@ -29,4 +29,18 @@ type FoodStockResponse struct {
 	CreatedRole string    `json:"created_role"`
 	UpdatedName string    `json:"updated_name"`
 	UpdatedRole string    `json:"updated_role"`
+}
+
+type ParamFoodStock struct {
+	Page   int    `query:"page"`
+	Limit  int    `query:"limit"`
+	Search string `query:"search"`
+}
+
+type FoodStockPagiResp struct {
+	Data     []FoodStockResponse `json:"data"`
+	Total    int64               `json:"total"`
+	Page     int                 `query:"page"`
+	LastPage int                 `query:"last_page"`
+	Limit    int                 `query:"limit"`
 }

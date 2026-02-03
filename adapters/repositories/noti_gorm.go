@@ -2,10 +2,11 @@ package repositories
 
 import (
 	"backend/entities"
+	"backend/mappers"
 	"backend/models"
 	"backend/usecases"
-	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"gorm.io/gorm"
@@ -20,53 +21,46 @@ func NewGormNotificationRepository(db *gorm.DB) usecases.NotificationRepository 
 }
 
 func (r *GormNotificationRepository) Create(noti *entities.Notification) error {
-	model := models.ToModel(noti)
+	model := mappers.NotificationEntityToModel(noti)
 	result := r.db.Create(&model)
 	if result.Error != nil {
 		return fmt.Errorf("database error: %w", result.Error)
 	}
-	// Update entity with generated values
-	noti.ID = model.ID
+	// update entity เพื่อเอาไว้ response ข้อมูล
+	noti.ID = strconv.FormatUint(uint64(model.ID), 10)
 	noti.CreatedAt = model.CreatedAt
 	noti.UpdatedAt = model.UpdatedAt
-
 	return nil
 }
 
 func (r *GormNotificationRepository) GetAll() ([]entities.Notification, error) {
-	var modelNotis []models.NotificationModel
-	result := r.db.Order("created_at DESC").Find(&modelNotis)
+	var model_noti []models.NotificationModel
+	result := r.db.Order("created_at").Find(&model_noti)
 	if result.Error != nil {
 		return nil, fmt.Errorf("database error: %w", result.Error)
 	}
 
-	notis := make([]entities.Notification, len(modelNotis))
-	for i, model := range modelNotis {
-		notis[i] = models.ToEntity(model)
+	noti := make([]entities.Notification, len(model_noti))
+	for i, model := range model_noti {
+		noti[i] = mappers.NotificationModelToEntity(model)
 	}
+	return noti, nil
 
-	return notis, nil
 }
 
 func (r *GormNotificationRepository) GetByID(id uint) (*entities.Notification, error) {
-	var notiModel models.NotificationModel
-	result := r.db.First(&notiModel, id)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, usecases.ErrNotificationNotFound
+	var model_noti models.NotificationModel
+	if err := r.db.First(&model_noti, id).Error; err != nil {
+		return nil, err
 	}
-	if result.Error != nil {
-		return nil, fmt.Errorf("database error: %w", result.Error)
-	}
-
-	noti := models.ToEntity(notiModel)
+	noti := models.ToEntity(model_noti)
 	return &noti, nil
 }
 
 func (r *GormNotificationRepository) GetUnreadCount() (int64, error) {
 	var count int64
-	result := r.db.Model(&models.NotificationModel{}).Where("is_read = ?", false).Count(&count)
-	if result.Error != nil {
-		return 0, fmt.Errorf("database error: %w", result.Error)
+	if err := r.db.Model(&models.NotificationModel{}).Where("is_read = ?", false).Count(&count).Error; err != nil {
+		return 0, err
 	}
 
 	return count, nil
@@ -87,14 +81,21 @@ func (r *GormNotificationRepository) MarkAsRead(id uint) error {
 }
 
 func (r *GormNotificationRepository) MarkAllAsRead() error {
-	result := r.db.Model(&models.NotificationModel{}).
+	// result := r.db.Model(&models.NotificationModel{}).
+	// 	Where("is_read = ?", false).
+	// 	Update("is_read", true)
+
+	// if result.Error != nil {
+	// 	return fmt.Errorf("database error: %w", result.Error)
+	// }
+
+	// return nil
+	err := r.db.Model(&models.NotificationModel{}).
 		Where("is_read = ?", false).
-		Update("is_read", true)
-
-	if result.Error != nil {
-		return fmt.Errorf("database error: %w", result.Error)
+		Update("is_read = ?", true).Error
+	if err != nil {
+		return err
 	}
-
 	return nil
 }
 

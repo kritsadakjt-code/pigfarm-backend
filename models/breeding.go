@@ -26,9 +26,9 @@ type Breeding struct {
 	Updater User `gorm:"foreignKey:UpdatedBy;references:ID" json:"updater"`
 }
 
-func (b *Breeding) DaysUntilBirth() int {
-	return int(time.Until(b.ExpectedBirth).Hours() / 24)
-}
-func (b *Breeding) IsPregnant() bool {
-	return b.Status == "อุ้มท้อง"
-}
+// func (b *Breeding) DaysUntilBirth() int {
+// 	return int(time.Until(b.ExpectedBirth).Hours() / 24)
+// }
+// func (b *Breeding) IsPregnant() bool {
+// 	return b.Status == "อุ้มท้อง"
+// }

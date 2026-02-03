@@ -12,7 +12,7 @@ import "time"
 
 // Pure domain entity - no framework tags
 type Notification struct {
-	ID        uint
+	ID        string // ให้เป็น string เพื่อให้รองรับทั้ง sql noSql กรณีต้องเปลี่ยน db
 	Type      string
 	Title     string
 	Message   string

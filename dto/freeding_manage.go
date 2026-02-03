@@ -33,3 +33,18 @@ type FeedingResponse struct {
 	UpdatedName string    `json:"updated_name"`
 	UpdatedRole string    `json:"updated_role"`
 }
+
+type ParamFeeding struct {
+	Page   int    `query:"page"`
+	Limit  int    `query:"limit"`
+	Search string `query:"search"`
+	FoodID uint   `query:"food_id"` // กรองดูเฉพาะการให้อาหารชนิดนี้
+}
+
+type FeedingPagiResp struct {
+	Data     []FeedingResponse `json:"data"`
+	Page     int               `json:"page"`
+	Limit    int               `json:"limit"`
+	Total    int64             `json:"total"`
+	LastPage int               `json:"last_page"`
+}

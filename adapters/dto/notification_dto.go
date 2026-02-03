@@ -12,7 +12,7 @@ type CreateNotificationRequest struct {
 }
 
 type NotificationResponse struct {
-	ID        uint      `json:"id"`
+	ID        string    `json:"id"`
 	Type      string    `json:"type"`
 	Title     string    `json:"title"`
 	Message   string    `json:"message"`

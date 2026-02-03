@@ -12,6 +12,17 @@ type DashboardResponse struct {
 	MainFoodKg          float64            `json:"main_food_kg"`
 	SupplementFoodKg    float64            `json:"supplement_food_kg"`
 	MonthlyExpenseChart map[string]float64 `json:"monthly_expense_chart"` // ค่าใช้จ่ายรายเดือนตามประเภท
-	MonthlyIncome       float64            `json:"monthly_income"`
+	MonthlyIncome       map[string]float64 `json:"monthly_income"`
 	DailyFeedingSummary map[string]float64 `json:"daily_feeding_summary"` // อาหารที่ให้ต่อวัน
+}
+
+type MonthlyIncome struct {
+	Month string  `json:"month"`
+	Total float64 `json:"total"`
+}
+
+type MonthlyExpense struct {
+	Month    string  `json:"month"`
+	Category string  `json:"category"`
+	Total    float64 `json:"total"`
 }

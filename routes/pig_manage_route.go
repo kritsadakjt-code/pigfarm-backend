@@ -1,19 +1,21 @@
 package routes
 
 import (
+	"backend/adapters/handlers"
 	"backend/controllers"
 	"backend/middlewares"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func PigRoute(app *fiber.App) {
+func PigRoute(app *fiber.App, handler *handlers.HttpPigHandler) {
 	pig := app.Group("/pigs", middlewares.CheckJWT())
-
-	pig.Post("/", controllers.CreatePig)
+	// pig.Get("/", handler.FindAllPagination)
+	pig.Post("/", handler.CreatePig)
 	pig.Get("/search", controllers.SearchPigs)
 	pig.Get("/", controllers.GetAllPigs)
-	pig.Get("/:id", controllers.GetPigByID)
-	pig.Put("/:id", controllers.UpdatePig)
-	pig.Delete("/:id", controllers.DeletePig)
+	pig.Get("/:id", handler.GetPigByID)
+	pig.Put("/:id", handler.UpdatePig)
+	pig.Delete("/:id", handler.DeletePig)
+
 }

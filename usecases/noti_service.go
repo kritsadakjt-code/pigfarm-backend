@@ -36,11 +36,21 @@ func (s *NotificationService) CreateNotification(notiType, title, message string
 	}
 
 	notification := entities.NewNotification(notiType, title, message)
+
+	// ถ้าไม่ใช้ constructor ของ NewNotification ทําตรงๆ เเบบนี้ได้
+	// notification2 := entities.Notification{
+	// 	Type:    notiType,
+	// 	Title:   title,
+	// 	Message: message,
+	// 	IsRead:  false,
+	// }
+
 	if err := s.noti.Create(notification); err != nil {
 		return fmt.Errorf("failed to create notification: %w", err)
 	}
 
 	return nil
+
 }
 
 func (s *NotificationService) GetAllNotifications() ([]entities.Notification, error) {
@@ -49,6 +59,7 @@ func (s *NotificationService) GetAllNotifications() ([]entities.Notification, er
 		return nil, fmt.Errorf("failed to get notifications: %w", err)
 	}
 	return notifications, nil
+
 }
 
 func (s *NotificationService) GetNotificationByID(id uint) (*entities.Notification, error) {
@@ -110,22 +121,24 @@ func (s *NotificationService) CheckFoodStock() error {
 	}
 	for _, food := range foods {
 		// เช็คว่ามี notification วันนี้ยัง
-		exists, err := s.noti.ExistsToday("food_low", food.Name)
+		exists, err := s.noti.ExistsToday("food_low", food.FoodTypeName)
 		if err != nil {
-			return err
+			fmt.Printf("Error checking notification exists: %v\n", err)
+			continue
 		}
 		if exists {
 			continue
 		}
 		if food.IsCriticalStock() {
 			title = "อาหารใกล้หมดอย่างเร่งด่วน"
-		} else if food.IsLowStock(food.Amount) {
+		} else {
 			title = "อาหารใกล้หมด"
 		}
 
-		message := fmt.Sprintf("%s เหลือเพียง %.2f Kg", food.Name, food.Amount)
+		message := fmt.Sprintf("%s เหลือเพียง %.2f Kg", food.FoodTypeName, food.Amount)
 		if err := s.CreateNotification("food_low", title, message); err != nil {
-			return err
+			fmt.Printf("Error checking notification exists: %v\n", err)
+			continue
 		}
 	}
 	return nil
@@ -144,7 +157,7 @@ func (s *NotificationService) CheckBreeding() error {
 		if !breeding.IsPregnant() {
 			continue
 		}
-		exists, err := s.noti.ExistsToday(entities.TypeBirthDue, breeding.Mother.CodeName)
+		exists, err := s.noti.ExistsToday(entities.TypeBirthDue, breeding.MotherCodename)
 		if err != nil {
 			return err
 		}
@@ -162,14 +175,14 @@ func (s *NotificationService) CheckBreeding() error {
 		}
 
 		message := fmt.Sprintf("%s จะคลอดในอีก %d วัน (วันที่ %s)",
-			breeding.Mother.CodeName,
+			breeding.MotherCodename,
 			daysUntil,
 			breeding.ExpectedBirth.Format("02/01/2006"))
 
 		if err := s.CreateNotification(entities.TypeBirthDue, title, message); err != nil {
 			return err
 		}
-		log.Println("Test", message, breeding.Mother.CodeName)
+		log.Println("Test", message, breeding.MotherCodename)
 	}
 	return nil
 

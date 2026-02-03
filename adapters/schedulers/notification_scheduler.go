@@ -1,8 +1,6 @@
 package schedulers
 
 import (
-	"backend/config"
-	"backend/models"
 	"backend/usecases"
 	"fmt"
 	"log"
@@ -10,28 +8,26 @@ import (
 )
 
 type NotificationScheduler struct {
-	service        *usecases.NotificationService
-	feedingService *usecases.FeedingService
-	interval       time.Duration
-	ticker         *time.Ticker
-	stopChan       chan struct{}
+	service             *usecases.NotificationService
+	feedingSchedService *usecases.FeedingSchedulerService
+	interval            time.Duration
+	ticker              *time.Ticker
+	stopChan            chan struct{}
 }
 
-func NewNotificationScheduler(service *usecases.NotificationService, feedingService *usecases.FeedingService, interval time.Duration) *NotificationScheduler {
+func NewNotificationScheduler(service *usecases.NotificationService, feedingSchedService *usecases.FeedingSchedulerService, interval time.Duration) *NotificationScheduler {
 	return &NotificationScheduler{
-		service:        service,
-		feedingService: feedingService,
-		interval:       interval,
-		stopChan:       make(chan struct{}),
+		service:             service,
+		feedingSchedService: feedingSchedService,
+		interval:            interval,
+		stopChan:            make(chan struct{}),
 	}
 }
 
 func (s *NotificationScheduler) CheckFeedingSchedules() {
 	log.Println("Checking for scheduled feeding tasks...")
 	currentTime := time.Now().Format("15:04")
-
-	var schedules []models.FeedingSchedule
-	err := config.DB.Preload("Items").Where("is_active = ? AND scheduled_time = ?", true, currentTime).Find(&schedules).Error
+	schedules, err := s.feedingSchedService.GetSchedulesDue(currentTime)
 	if err != nil {
 		log.Printf("Error fetching feeding schedules: %v", err)
 		return
@@ -56,7 +52,7 @@ func (s *NotificationScheduler) CheckFeedingSchedules() {
 			})
 		}
 
-		err := s.feedingService.CreateFeedingLogsForItems(
+		err := s.feedingSchedService.CreateFeedingLogsForItems(
 			itemsToFeed,
 			time.Now(),
 			fmt.Sprintf("Automatic feeding : %s", schedule.Name), // สร้าง Note อัตโนมัติ

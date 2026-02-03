@@ -1,6 +1,8 @@
 package dto
 
-import "time"
+import (
+	"time"
+)
 
 type BreedingInput struct {
 	FatherID     uint   `json:"father_id" validate:"required"`
@@ -35,4 +37,20 @@ type BreedingResponse struct {
 	CreatedRole    string    `json:"created_role"`
 	UpdatedName    string    `json:"updated_name"`
 	UpdatedRole    string    `json:"updated_role"`
+}
+
+type BreedingParam struct {
+	Page   int    `query:"page"`
+	Limit  int    `query:"limit"`
+	Search string `query:"search"`
+	Status string `query:"status"`
+	Result string `query:"result"`
+}
+
+type BreedingPaginationResponse struct {
+	Data     []BreedingResponse `json:"data"`
+	Total    int64              `json:"total"` // gorm return int64
+	Page     int                `json:"page"`
+	LastPage int                `json:"last_page"`
+	Limit    int                `json:"limit"`
 }

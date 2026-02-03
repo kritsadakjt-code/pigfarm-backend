@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"backend/entities"
-	"backend/models"
 	"time"
 )
 
@@ -18,9 +17,9 @@ type NotificationRepository interface {
 }
 
 type FoodStockRepository interface {
-	GetLowStock(quantity float64) ([]models.FoodStock, error)
+	GetLowStock(quantity float64) ([]entities.FoodStock, error)
 }
 
 type BreedingRepository interface {
-	GetUpcomingBirths(startDate, endDate time.Time) ([]models.Breeding, error)
+	GetUpcomingBirths(startDate, endDate time.Time) ([]entities.Breeding, error)
 }

@@ -39,3 +39,20 @@ type PigUpdate struct {
 	Weight    *float64 `json:"weight,omitempty"`
 	Status    *string  `json:"status" validate:"omitempty,oneof=อุ้มท้อง พร้อมผสม ให้นมลูก กำลังขุน กำลังเลี้ยง ขายเเล้ว พร้อมขาย ตายเเล้ว"`
 }
+
+type PigParam struct {
+	Page   int    `query:"page"`
+	Limit  int    `query:"limit"`
+	Search string `query:"search"`
+	Status string `query:"status"`
+	Type   string `query:"type"` // กรองประเภท (พ่อพันธุ์/แม่พันธุ์)
+	Gender string `query:"gender"`
+}
+
+type PigPaginationResponse struct {
+	Data     []PigResponse `json:"data"`
+	Total    int64         `json:"total"`
+	Page     int           `json:"page"`
+	LastPage int           `json:"last_page"`
+	Limit    int           `json:"limit"`
+}

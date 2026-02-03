@@ -1,19 +1,21 @@
 package routes
 
 import (
+	"backend/adapters/handlers"
 	"backend/controllers"
 	"backend/middlewares"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func FeedingRoute(app *fiber.App) {
+func FeedingRoute(app *fiber.App, handler *handlers.FeedingHttpHandler) {
 	feeding := app.Group("/feeding", middlewares.CheckJWT())
-	feeding.Post("/", controllers.CreateFeeding)
+	feeding.Post("/", handler.CreateFeeding)
+	// feeding.Get("/", handler.GetAllFeedingPagination)
 	feeding.Get("/search", controllers.SearchFeeding)
 	feeding.Get("/", controllers.GetAllFeeding)
-	feeding.Get("/:id", controllers.GetFeedingByID)
-	feeding.Put("/:id", controllers.UpdateFeeding)
-	feeding.Delete("/:id", controllers.DeleteFeeding)
+	feeding.Get("/:id", handler.GetFeedingByID)
+	feeding.Put("/:id", handler.UpdateFeeding)
+	feeding.Delete("/:id", handler.DeleteFeeding)
 
 }
