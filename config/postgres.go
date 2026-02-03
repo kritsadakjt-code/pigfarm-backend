@@ -13,7 +13,7 @@ import (
 
 var DB *gorm.DB
 
-func InitDB() {
+func ConnectPostgres() {
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
 	user := os.Getenv("DB_USER")
@@ -39,4 +39,5 @@ func InitDB() {
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	log.Println("Connected to Postgres:", dbName)
+
 }

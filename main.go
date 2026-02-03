@@ -23,7 +23,11 @@ import (
 
 func main() {
 	godotenv.Load() // โหลด .env
-	config.InitDB()
+	// connect postgres
+	config.ConnectPostgres()
+	// connect mongo กรณีอยากเปลี่ยน db
+	config.ConnectMongo()
+
 	validate := validator.New()
 	config.DB.AutoMigrate(
 		&models.User{},
