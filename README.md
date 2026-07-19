@@ -12,6 +12,7 @@ automated notifications — built in Go with Clean Architecture.
 ![GORM](https://img.shields.io/badge/GORM-00ADD8?style=for-the-badge)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=jsonwebtokens)
+![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)
 
 </div>
 
